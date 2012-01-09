@@ -1,4 +1,4 @@
-# Quick and dirty script to a gist to github. Target can either be an existing file or we'll launch vim:
+## Quick and dirty script to post gist to github. Target can either be an existing file or we'll launch vim.
 
 If you don't want to be prompted for your username make sure you either set the environmental variable:
 

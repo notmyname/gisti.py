@@ -2,7 +2,7 @@
 
 If you don't want to be prompted for your username make sure you either set the environmental variable:
 
-export GITHUB_USER=bob
+    export GITHUB_USER=bob
 
 Or add it to your git config:
 

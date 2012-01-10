@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import subprocess
+import platform
 import optparse
 import urllib2
 import getpass
@@ -12,23 +13,33 @@ except ImportError:
 
 
 def getcontent(fname):
+    """ read content from file
+    :returns: file contents"""
     with open(fname) as f:
         return f.read()
 
 
 def bauth(user, password):
+    """perform basic auth
+    :param user: the username
+    :param password: the password 
+    :returns: string in the format: "Basic THEHASH"
+    """
     s = user + ":" + password
     return "Basic " + s.encode("base64").rstrip()
 
+
 def parse_list(response):
+    """Parse a github gist listing .
+    :param response: the returned body."""
     try:
         gists = json.loads(response.replace('\n', '\\n'))
         if type(gists) is list:
             for entry in gists:
-                print "%s - %s '%s'" % (entry['html_url'], 
+                print "%s - %s '%s'" % (entry['html_url'],
                     entry['files'].keys(), entry['description'])
         else:
-            print "%s - %s '%s'" % (gists['html_url'], 
+            print "%s - %s '%s'" % (gists['html_url'],
                     gists['files'].keys(), gists['description'])
     except Exception as err:
         print "Error parsing json: %s" % err
@@ -37,10 +48,15 @@ def parse_list(response):
         print "=" * 79
     return None
 
+
 def parse_post(response):
+    """Parse a github gist posting.
+    :param response: the returned body."""
     try:
         gist = json.loads(response.replace('\n', '\\n'))
         print "Posted to %s" % gist['html_url']
+        if platform.system() == 'Darwin':
+            os.system('echo "%s" | pbcopy') % gist['html_url']
         print "Git pull: %s" % gist['git_pull_url']
         print "Git push: %s" % gist['git_push_url']
     except Exception as err:
@@ -49,7 +65,12 @@ def parse_post(response):
         print "response.replace('\n', '\\n')"
         print "=" * 79
 
+
 def gist_list(user, password=None, gid=None):
+    """Peform a gist listing
+    :param user: github user name for auth.
+    :param password: github user password.
+    :param gid: gist id to retrieve or None for all"""
     if gid is None:
         if user is not None:
             url = "https://api.github.com/users/%s/gists" % user
@@ -76,8 +97,10 @@ def gist_list(user, password=None, gid=None):
     except Exception as err:
         print "Error getting gist(s): %s" % err
 
+
 def gist_post(fname, public=True, user=None, password=None):
     """
+    Post a anonymous, public or private gist to github. 
     {
       "description": "the description for this gist",
       "public": true,
@@ -87,27 +110,29 @@ def gist_post(fname, public=True, user=None, password=None):
         }
       }
     }
+    :param fname: The gist filename.
+    :param public: Whether this gist is public (True) or private (False)
+    :param user: github user
+    :param password: github password
     """
     url = "https://api.github.com/gists"
     gist = {}
     gist['description'] = fname
     gist['public'] = public
-    gist['files'] =  {fname: {'content': getcontent(fname)}}
+    gist['files'] = {fname: {'content': getcontent(fname)}}
     data = json.dumps(gist)
     if user is not None and password is not None:
         req = urllib2.Request(url, data=data, headers = {
             'Authorization': bauth(user, password),
             'Content-Type': 'application/json',
             'Accept': '*/*',
-            'User-Agent': 'gistipy/1'
-        })
+            'User-Agent': 'gistipy/1'})
         print "Posting gist as %s" % user
     else:
         req = urllib2.Request(url, data=data, headers = {
             'Content-Type': 'application/json',
             'Accept': '*/*',
-            'User-Agent': 'gistipy/1'
-        })
+            'User-Agent': 'gistipy/1'})
         print "Posting anonymous gist..."
     try:
         f = urllib2.urlopen(req)
@@ -116,6 +141,7 @@ def gist_post(fname, public=True, user=None, password=None):
         parse_post(response)
     except Exception as err:
         print "Error posting gist: %s" % err
+
 
 def get_gh_user():
     cmd = ['git', 'config', '--get', 'github.user']
@@ -129,6 +155,7 @@ def get_gh_user():
         except KeyError:
             return None
 
+
 def get_gh_pass():
     cmd = ['git', 'config', '--get', 'github.password']
     run = subprocess.Popen(cmd, stdout=subprocess.PIPE)
@@ -141,8 +168,8 @@ def get_gh_pass():
         except KeyError:
             return None
 
+
 def main():
-    global VERBOSE, SUPPRESS_ERRORS, swift_dir, pool
     print "=" * 79
     usage = '''
     usage: %prog [-v] [-p|--private] [-l|--list] gist.file
@@ -180,7 +207,8 @@ def main():
                 print "Aborting..."
                 sys.exit(1)
         if not ghpass:
-            ghpass = getpass.getpass("Enter password for %s@github.com: " % ghuser)
+            ghpass = getpass.getpass("Enter password for %s@github.com: " % \
+                ghuser)
     else:
         ghuser = None
         ghpass = None
@@ -199,9 +227,11 @@ def main():
             if os.path.isfile(fname):
                 sendit = raw_input("Post %s as gist? (y/n)[y]: " % fname)
                 if sendit == "y" or sendit == "yes" or len(sendit) is 0:
-                    gist_post(fname, public=public, user=ghuser, password=ghpass)
+                    gist_post(fname, public=public,
+                            user=ghuser, password=ghpass)
             else:
                 print "Did not post %s as gist." % fname
+
 
 if __name__ == '__main__':
     try:

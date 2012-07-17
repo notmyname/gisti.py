@@ -115,11 +115,16 @@ def gist_post(fname, public=True, user=None, password=None):
     :param user: github user
     :param password: github password
     """
+    if fname is sys.stdin:
+        content = fname.read()
+        fname = 'stdin'
+    else:
+        content = getcontent(fname)
     url = "https://api.github.com/gists"
     gist = {}
     gist['description'] = fname
     gist['public'] = public
-    gist['files'] = {fname: {'content': getcontent(fname)}}
+    gist['files'] = {fname: {'content': content}}
     data = json.dumps(gist)
     if user is not None and password is not None:
         req = urllib2.Request(url, data=data, headers = {
@@ -172,7 +177,7 @@ def get_gh_pass():
 def main():
     print "=" * 79
     usage = '''
-    usage: %prog [-v] [-p|--private] [-l|--list] gist.file
+    usage: %prog [-v] [-p|--private] [-l|--list] [gist.file]
     '''
     args = optparse.OptionParser(usage)
     args.add_option('--verbose', '-v', action="store_true",
@@ -184,14 +189,6 @@ def main():
     args.add_option('--list', '-l', action="store_true",
         help="list gists, use with -a to list only your public gists")
     options, arguments = args.parse_args()
-
-    if len(sys.argv) <= 1:
-        args.print_help()
-        sys.exit(1)
-
-    if not arguments and not options.list:
-        args.print_help()
-        sys.exit(1)
 
     if options.private:
         public = False
@@ -218,19 +215,22 @@ def main():
         gist_list(user=ghuser, password=ghpass)
         sys.exit(0)
 
-    for fname in arguments:
-        if os.path.isfile(fname):
-            gist_post(fname, public=public, user=ghuser, password=ghpass)
-        else:
-            cmd = '%s ./%s' % (os.environ.get('EDITOR', 'vim'), fname)
-            os.system(cmd)
+    if not arguments:
+        gist_post(sys.stdin, public=public, user=ghuser, password=ghpass)
+    else:
+        for fname in arguments:
             if os.path.isfile(fname):
-                sendit = raw_input("Post %s as gist? (y/n)[y]: " % fname)
-                if sendit == "y" or sendit == "yes" or len(sendit) is 0:
-                    gist_post(fname, public=public,
-                            user=ghuser, password=ghpass)
+                gist_post(fname, public=public, user=ghuser, password=ghpass)
             else:
-                print "Did not post %s as gist." % fname
+                cmd = '%s ./%s' % (os.environ.get('EDITOR', 'vim'), fname)
+                os.system(cmd)
+                if os.path.isfile(fname):
+                    sendit = raw_input("Post %s as gist? (y/n)[y]: " % fname)
+                    if sendit == "y" or sendit == "yes" or len(sendit) is 0:
+                        gist_post(fname, public=public,
+                                user=ghuser, password=ghpass)
+                else:
+                    print "Did not post %s as gist." % fname
 
 
 if __name__ == '__main__':

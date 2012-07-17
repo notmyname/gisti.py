@@ -222,7 +222,7 @@ def main():
         if os.path.isfile(fname):
             gist_post(fname, public=public, user=ghuser, password=ghpass)
         else:
-            cmd = 'vim ./%s' % fname
+            cmd = '%s ./%s' % (os.environ.get('EDITOR', 'vim'), fname)
             os.system(cmd)
             if os.path.isfile(fname):
                 sendit = raw_input("Post %s as gist? (y/n)[y]: " % fname)

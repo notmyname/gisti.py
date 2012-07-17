@@ -44,7 +44,7 @@ def parse_list(response):
     except Exception as err:
         print "Error parsing json: %s" % err
         print "=" * 79
-        print response
+        print repr(response)
         print "=" * 79
     return None
 
@@ -56,13 +56,13 @@ def parse_post(response):
         gist = json.loads(response.replace('\n', '\\n'))
         print "Posted to %s" % gist['html_url']
         if platform.system() == 'Darwin':
-            os.system('echo "%s" | pbcopy') % gist['html_url']
+            os.system('echo "%s" | pbcopy' % gist['html_url'])
         print "Git pull: %s" % gist['git_pull_url']
         print "Git push: %s" % gist['git_push_url']
     except Exception as err:
         print "Error parsing json: %s" % err
         print "=" * 79
-        print "response.replace('\n', '\\n')"
+        print repr(response)
         print "=" * 79
 
 
